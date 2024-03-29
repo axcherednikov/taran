@@ -24,7 +24,7 @@ composer build
 
 Run 10’000 GET requests against `http://localhost:8002` with concurrency level of 200 (requests in parallel):
 ```shell
-./builds/taran --requests=10000 --concurrency=200 http://localhost:8002
+./builds/taran load --requests=10000 --concurrency=200 http://localhost:8002
 ```
 
 Example output:
