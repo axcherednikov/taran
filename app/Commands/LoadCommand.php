@@ -208,7 +208,12 @@ class LoadCommand extends Command
 		echo sprintf('%s ± %s  (avg ± std dev)', self::formatSeconds($avgTime), self::formatSeconds($stdDev));
 		echo PHP_EOL;
 		self::printTable($timeTable);
-		echo '     Total bytes:  ', $bytesDownloaded, ' B received, ', $bytesUploaded, ' B sent', PHP_EOL;
+		echo '         Traffic:  ';
+		echo self::formatBytes($bytesDownloaded), ' received, ';
+		echo self::formatBytes($bytesUploaded), ' sent', PHP_EOL;
+		echo '            Load:  ';
+		echo self::formatBitsPerSec($bytesDownloaded, $timeDiff), ' download, ';
+		echo self::formatBitsPerSec($bytesUploaded, $timeDiff), ' upload', PHP_EOL;
 		echo '      HTTP codes:', PHP_EOL;
 		arsort($httpCodes);
 		foreach ($httpCodes as $code => $count) {
@@ -316,6 +321,50 @@ class LoadCommand extends Command
 			return sprintf('%.2f µs', $seconds * 1_000_000);
 		}
 		return '< 10 ns';
+	}
+
+	private static function formatBytes(int $bytes): string
+	{
+		if ($bytes < 1024) {
+			return $bytes . ' B';
+		}
+		$units = ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi', 'Yi', 'Ri', 'Qi'];
+		$unit = 0;
+		$number = (float)$bytes;
+		while ($number >= 999) {
+			$number /= 1024;
+			$unit++;
+		}
+		$postfix = '(' . number_format($bytes, 0, '.', '') . ' B)';
+		if ($number < 10) {
+			return sprintf('%.2f %s%s %s', $number, $units[$unit], 'B', $postfix);
+		}
+		if ($number < 100) {
+			return sprintf('%.1f %s%s %s', $number, $units[$unit], 'B', $postfix);
+		}
+		return sprintf('%.0f %s%s %s', $number, $units[$unit], 'B', $postfix);
+	}
+
+	private static function formatBitsPerSec(int $bytes, float $seconds): string
+	{
+		$speed = $bytes * 8 / $seconds;
+		if ($speed < 1000) {
+			return sprintf('%d b/s', $speed);
+		}
+		$units = ['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y', 'R', 'Q'];
+		$unit = 0;
+		$number = $speed;
+		while ($number >= 999) {
+			$number /= 1000;
+			$unit++;
+		}
+		if ($number < 10) {
+			return sprintf('%.2f %s%s', $number, $units[$unit], 'b/s');
+		}
+		if ($number < 100) {
+			return sprintf('%.1f %s%s', $number, $units[$unit], 'b/s');
+		}
+		return sprintf('%.0f %s%s', $number, $units[$unit], 'b/s');
 	}
 
 	private static function calcStats(array $times): array
