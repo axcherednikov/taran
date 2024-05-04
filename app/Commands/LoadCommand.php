@@ -2,6 +2,7 @@
 
 namespace App\Commands;
 
+use CURLFile;
 use Generator;
 use Illuminate\Console\Scheduling\Schedule;
 use LaravelZero\Framework\Commands\Command;
@@ -17,6 +18,8 @@ class LoadCommand extends Command
 	'{--c|concurrency=10 : Number of parallel processes}' .
 	'{--t|timeout=2.0 : Timeout of HTTP request in seconds}' .
 	'{--b|body= : HTTP body to send in every request}' .
+	'{--f|file= : File to upload in every request}' .
+	'{--file-field=file : Name of the file’s POST field}' .
 	'{--histogram=20 : Timing histogram bars count (0 to disable)}' .
 	'{--export= : Export request timings data (without timeouts) to file}';
 
@@ -31,12 +34,14 @@ class LoadCommand extends Command
 	private float $timeout = 2;
 	private bool $progress = true;
 	private string $body = '';
+	private string $file = '';
+	private string $fileField = 'file';
 	private int $bars = 20;
 
 	/**
 	 * Execute the console command.
 	 */
-	public function handle(): void
+	public function handle(): int
 	{
 		$timeStart = microtime(true);
 
@@ -55,9 +60,15 @@ class LoadCommand extends Command
 			$this->timeout = 2.0;
 		}
 		$this->body = (string)($this->option('body') ?: '');
+		$this->file = (string)($this->option('file') ?: '');
+		$this->fileField = (string)($this->option('file-field') ?: 'file');
 		$this->bars = (int)($this->option('histogram') ?: 20);
 		if ($this->bars < 0) {
 			$this->bars = 0;
+		}
+		if ($this->file !== '' && !is_readable($this->file)) {
+			$this->error('File not readable: ' . $this->file);
+			return 1;
 		}
 
 		//
@@ -138,7 +149,7 @@ class LoadCommand extends Command
 			echo '  Concurrency:  ', $this->concurrency, PHP_EOL;
 			echo '     Timeouts:  ', $timeouts, PHP_EOL;
 			$this->error('All requests failed by timeout of ' . self::formatSeconds($this->timeout, false));
-			return;
+			return 2;
 		}
 
 		$ttfbTimeStats = self::calcStats($timesTtfb);
@@ -225,6 +236,12 @@ class LoadCommand extends Command
 		}
 
 		if ($this->bars > 1) {
+			$this->info(sprintf(
+				'%d requests done in %s (%.0f average RPS).',
+				$requestsSent,
+				self::formatSeconds($timeDiff),
+				$requestsSent / $timeDiff
+			));
 			self::printHistogram($timesTotal, $this->bars);
 		}
 
@@ -244,6 +261,8 @@ class LoadCommand extends Command
 			self::formatSeconds($timeDiff),
 			$requestsSent / $timeDiff
 		));
+
+		return 0;
 	}
 
 	/**
@@ -270,7 +289,12 @@ class LoadCommand extends Command
 					CURLOPT_RETURNTRANSFER => true,
 					CURLOPT_TIMEOUT_MS => 1000 * $this->timeout,
 				]);
-				if ($this->body !== '') {
+				if ($this->file !== '') {
+					//curl_setopt($curl, CURLOPT_POST, true);
+					curl_setopt($curl, CURLOPT_POSTFIELDS, [
+						$this->fileField => new CURLFile(realpath($this->file)),
+					]);
+				} elseif ($this->body !== '') {
 					curl_setopt($curl, CURLOPT_POSTFIELDS, $this->body);
 				}
 				curl_exec($curl);
@@ -440,7 +464,9 @@ class LoadCommand extends Command
 		foreach ($binCounts as $bin => $item) {
 			$binWidth = (int)round($item * $printWidth / $maxCount);
 			$table[] = [
-				self::formatSeconds($binStarts[$bin]) . ' .. ' . self::formatSeconds($binEnds[$bin]),
+				self::formatSeconds($binStarts[$bin]),
+				'..',
+				self::formatSeconds($binEnds[$bin]),
 				str_repeat('#', $binWidth),
 				$item,
 			];
@@ -460,7 +486,7 @@ class LoadCommand extends Command
 		}
 		foreach ($table as $row) {
 			foreach ($row as $col => $value) {
-				echo ' ', str_pad($value, $maxColWidth[$col] + 1);
+				echo ' ', mb_str_pad($value, $maxColWidth[$col] + 1);
 			}
 			echo PHP_EOL;
 		}

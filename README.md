@@ -4,6 +4,8 @@
 
 “Taran” means “[battering ram](https://en.wikipedia.org/wiki/Battering_ram)” in Russian. 
 
+Written in PHP 8.1+ using [Laravel Zero](https://laravel-zero.com/) console framework.
+
 
 ## Build
 Build into an executable file (`builds/taran`):
@@ -102,6 +104,8 @@ Options:
   -c, --concurrency[=CONCURRENCY]  Number of parallel processes [default: "10"]
   -t, --timeout[=TIMEOUT]          Timeout of HTTP request in seconds [default: "2.0"]
   -b, --body[=BODY]                HTTP body to send in every request
+  -f, --file[=FILE]                File to upload in every request
+      --file-field[=FILE-FIELD]    Name of the file’s POST field [default: "file"]
       --histogram[=HISTOGRAM]      Timing histogram bars count (0 to disable) [default: "20"]
       --export[=EXPORT]            Export request timings data (without timeouts) to file
   -h, --help                       Display help for the given command. When no command is given display help for the list command
