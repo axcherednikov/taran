@@ -30,13 +30,13 @@
 		"ext-sockets": "*",
 		"ext-pcntl": "*",
 
-		"laravel-zero/framework": "^10.0.2",
-		"nunomaduro/termwind": "^1.15.1",
+		"laravel-zero/framework": "^v11.0",
+		"nunomaduro/termwind": "^v2.0",
 		"spatie/fork": "^1.2"
 	},
 	"require-dev": {
-		"mockery/mockery": "^1.5.1",
-		"pestphp/pest": "^2.5",
+		"mockery/mockery": "^1.6",
+		"pestphp/pest": "@stable",
 		"roave/security-advisories": "dev-latest"
 	},
 	"minimum-stability": "stable",
